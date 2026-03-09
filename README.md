@@ -27,6 +27,31 @@ The pipeline consists of 8 stages, each implemented as a standalone Python scrip
 
 ---
 
+## Simulation Methods
+
+The `simulation/` folder contains two TypeScript implementations of the UWB reliability evaluation methods developed for the browser-based 3D simulation tool built alongside the pipeline.
+
+| File | Method | Description |
+|------|--------|-------------|
+| `method3_pdop.ts` | Method 3 — PDOP | Computes a normalised PDOP score (0–100) based on anchor geometry. Uses the Moore-Penrose pseudoinverse of the observation matrix H via math.js. Lower score = better anchor geometry. |
+| `method4_los.ts` | Method 4 — Line-of-Sight | Computes a blocked-ratio score (0–100) using Three.js raycasting. Casts a ray from each anchor toward the tag and checks for obstacle intersections. Higher score = more anchors blocked. |
+
+These methods were integrated into a React/Three.js simulation platform that rendered voxelised 3D maps of indoor environments. The PDOP score from Method 3 directly informs the measurement noise covariance `R` in the related EKF implementation — see [Related Work](#related-work).
+
+### Dependencies
+
+**Method 3:**
+```bash
+npm install mathjs
+```
+
+**Method 4:**
+```bash
+npm install three
+```
+
+---
+
 ## System Requirements
 
 ### Script 1 only
@@ -110,27 +135,41 @@ The source code for all scripts is provided for reference and reproducibility of
 ## Repository Structure
 
 ```
-/
-├── 1_extract_all_topics.py
-├── 2_remove_zero_xyz_rows.py
-├── 3_sync_and_shift_all_to_uwb.py
-├── 4_trajectory_all_high.py
-├── 4_trajectory_all_low.py
-├── 5_voxel_hits_batch_converter.py
-├── 6_kdtree.py
-├── 7a_plot_k_Manual.py
-├── 7b_plot_conventionals.py
-├── 7c_plot_sturges.py
-├── 7d_plot_regressions.py
-├── 8_compute_position_accuracy_batch.py
-└── README.md
+uwb-localization-pipeline/
+├── pipeline/
+│   ├── 1_extract_all_topics.py
+│   ├── 2_remove_zero_xyz_rows.py
+│   ├── 3_sync_and_shift_all_to_uwb.py
+│   ├── 4_trajectory_all_high.py
+│   ├── 4_trajectory_all_low.py
+│   ├── 5_voxel_hits_batch_converter.py
+│   ├── 6_kdtree.py
+│   ├── 7a_plot_k_Manual.py
+│   ├── 7b_plot_conventionals.py
+│   ├── 7c_plot_sturges.py
+│   ├── 7d_plot_regressions.py
+│   └── 8_compute_position_accuracy_batch.py
+├── simulation/
+│   ├── method3_pdop.ts
+│   └── method4_los.ts
+├── README.md
+└── LICENSE
 ```
+
+---
+
+## Related Work
+
+**EKF Sensor Fusion — UWB and Wheel Odometry**
+[github.com/joecheng1028/ekf_node](https://github.com/joecheng1028/ros2_ekf_uwb_odometry)
+
+A post-thesis extension implementing an Extended Kalman Filter in C++ (ROS 2, Eigen) that fuses UWB position measurements with wheel odometry. The PDOP score from Method 3 directly informs the measurement noise covariance `R` in the filter — high PDOP reduces trust in UWB. Validated against bag files recorded during these experiments.
 
 ---
 
 ## Author
 
-**Ting Tsun Cheng**  
-M.Sc. Embedded Systems, TU Chemnitz (2025)  
-Thesis: *Robot-Based UWB Localization Testbed and Simulation Environment*  
+**Ting Tsun Cheng**
+M.Sc. Embedded Systems, TU Chemnitz (2025)
+Thesis: *Robot-Based UWB Localization Testbed and Simulation Environment*
 Grade: 1.4
