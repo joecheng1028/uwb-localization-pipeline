@@ -1,0 +1,42 @@
+# config.yaml
+
+# Script 1 - Topics Extraction
+topic:
+  "/odometry/filtered":
+    msg_type: "nav_msgs/msg/Odometry"
+    csv: "1_odometry_filtered.csv"
+    scale10: false
+  "/uwb_pose": 
+    msg_type: "geometry_msgs/msg/PoseWithCovarianceStamped"
+    csv: "1_uwb_pose.csv"
+    scale10: true
+
+# Script 4 - Trajectory Resampling
+offset_high:
+  x: 47.5
+  y: 1.8
+  z: -2.2
+offset_low:
+  x: 47.5
+  y: 1.14
+  z: -2.2
+  
+# Script 5 - Voxel value conversion
+keyword_stage5: "_voxels"
+output_suffix_stage5: "_converted.json"
+
+# Script 6 - KDTree Spatial Matching
+keyword_stage6: "_converted"
+uwb_csv: "3_uwb_pose_shifted.csv"
+pose_file_lookup:
+  amcl: "3_amcl_pose_uwbSync.csv"
+  odom: "3_odometry_filtered_uwbSync.csv"
+pose_suffix_lookup:
+  amcl: "_amcl"
+  odom: "_odom"
+  
+# Script 7 - Plot and Regression Analysis
+keyword_stage7: "_voxels_converted_error"
+
+# Script 8 - Position Accuracy
+pattern: "*_converted_error.csv"
