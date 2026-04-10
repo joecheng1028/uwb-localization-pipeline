@@ -30,21 +30,21 @@ pip install pandas numpy matplotlib scipy scikit-learn pyyaml
 
 ### Input Data
 
-- One `.db3` ROS 2 bag file placed in the same directory as `1_extract_all_topics.py`
+- One `.db3` ROS 2 bag file placed in the same directory as `1_extract_topics.py`
 - Voxel-annotated JSON files from OSM3DM (produced between Stages 4 and 5)
 
 ### Execution Order
 
 ```
-1_extract_all_topics.py
-2_odom_removeZeros.py
-3_sync_and_shift_all_to_uwb.py
-4_trajectory_all.py --profile [high|low]
+1_extract_topics.py
+2_odom_clean.py
+3_sync_shift_to_uwb.py
+4_traject_resample.py --profile [high|low]
 → Run OSM3DM color intensity injection on output JSON files
-5_voxel_hits_batch_converter.py
-6_kdtree.py
+5_traject_voxel_shift.py
+6_error_kdtree.py
 7d_plot_regressions.py      (and/or 7a, 7b, 7c)
-8_compute_position_accuracy_batch.py
+8_position_accuracy.py
 ```
 
 ---
