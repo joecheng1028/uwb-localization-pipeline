@@ -1,0 +1,6 @@
+version: "3"
+services:
+  pipeline:
+    image: uwb-pipeline
+    volumes:
+      - .:/app
