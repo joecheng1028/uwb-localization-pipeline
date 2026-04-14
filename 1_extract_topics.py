@@ -1,6 +1,4 @@
-"""
-This module imports positioning data of a real life robot installed with UWB tag
-"""
+
 import rclpy
 import rosbag2_py
 import csv
@@ -9,42 +7,43 @@ from rclpy.serialization import deserialize_message
 from rosidl_runtime_py.utilities import get_message
 import yaml
 
-script_dir = os.path.dirname(os.path.abspath(__file__))
-yaml_path = os.path.join(script_dir, "config.yaml")
-
-with open(yaml_path, "r") as f:
-    yaml_config = yaml.safe_load(f)
-
-TOPICS = yaml_config["topic"]
-
-# === Topic configuration for extraction ===
-# TOPICS = {
-#     '/odometry/filtered': {
-#         'msg_type': 'nav_msgs/msg/Odometry',
-#         'csv': '1_odometry_filtered.csv',
-#         'scale10': False
-#     },
-#     '/uwb_pose': {
-#         'msg_type': 'geometry_msgs/msg/PoseWithCovarianceStamped',
-#         'csv': '1_uwb_pose.csv',
-#         'scale10': True
-#     }
-# }
-
 def write_csv_header(writer):
     """
     Write the header of the output .csv
     """
-    # Write a fixed header to standardize the CSV structure.
     writer.writerow([
         'timestamp_abs (s)', 'timestamp_norm (s)', 'x', 'y', 'z', 'qx', 'qy', 'qz', 'qw'
     ])
 
 def main():
     """
+    This module imports positioning data of a real life robot installed with UWB tag
+    """
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    yaml_path = os.path.join(script_dir, "config.yaml")
+
+    with open(yaml_path, "r") as f:
+        yaml_config = yaml.safe_load(f)
+
+    TOPICS = yaml_config["topic"]
+
+    # === Topic configuration for extraction ===
+    # TOPICS = {
+    #     '/odometry/filtered': {
+    #         'msg_type': 'nav_msgs/msg/Odometry',
+    #         'csv': '1_odometry_filtered.csv',
+    #         'scale10': False
+    #     },
+    #     '/uwb_pose': {
+    #         'msg_type': 'geometry_msgs/msg/PoseWithCovarianceStamped',
+    #         'csv': '1_uwb_pose.csv',
+    #         'scale10': True
+    #     }
+    # }
+
+    """
     This looks for .db3 at the same directory, extract and export the data from ROS2 specific topics into a .csv file
     """
-    # Locate the first .db3 file in this folder.
     bag_folder = os.path.abspath(os.path.dirname(__file__))
     db3_files = sorted([f for f in os.listdir(bag_folder) if f.endswith('.db3')])
     if not db3_files:
@@ -55,7 +54,6 @@ def main():
     bag_path = os.path.join(bag_folder, bag_file)
     print(f"Using bag: {bag_file}")
     
-    # Open the bag with ROS 2 reader settings.
     rclpy.init()
     try:
         storage_options = rosbag2_py.StorageOptions(uri=bag_path, storage_id='sqlite3')
@@ -63,11 +61,9 @@ def main():
         reader = rosbag2_py.SequentialReader()
         reader.open(storage_options, converter_options)
 
-        # Restrict reading to the configured topics.
         selected_topics = list(TOPICS.keys())
         reader.set_filter(rosbag2_py.StorageFilter(topics=selected_topics))
 
-        # Prepare CSV writers and resolve message types.
         writers = {}
         files = {}
         types = {}
@@ -77,14 +73,13 @@ def main():
             write_csv_header(writers[topic])
             types[topic] = get_message(config['msg_type'])
         try:
-            # Stream messages and write rows per topic.
             first_timestamp = None
             while reader.has_next():
                 topic, data, t = reader.read_next()
                 if topic not in TOPICS:
                     continue
 
-                # Normalize time to start at zero.
+                # Shift starting time to zero.
                 if first_timestamp is None:
                     first_timestamp = t
                 timestamp_abs = t * 1e-9
@@ -95,9 +90,7 @@ def main():
                 pose = msg.pose.pose
                 cfg = TOPICS[topic]
 
-                # === Frame mapping for x/y consistency ===
-                # For UWB, coordinates are used as-is.
-                # For odometry, signs are flipped to match the UWB frame convention.
+                # Frame remap/alignment
                 if topic == '/uwb_pose':
                     x_out = pose.position.x
                     y_out = pose.position.y
@@ -108,14 +101,14 @@ def main():
                     x_out = pose.position.x
                     y_out = pose.position.y
 
-                # Apply optional 1/10 scaling if requested by the topic config.
+                # Scaling if needed for topic
                 z_out = pose.position.z
                 if cfg['scale10']:
                     x_out /= 10
                     y_out /= 10
                     z_out /= 10
 
-                # Write one row per message with position and orientation.
+                # Write position and orientation
                 writers[topic].writerow([
                     timestamp_abs,
                     timestamp_norm,
@@ -133,7 +126,7 @@ def main():
         # Report output locations per topic.
         print("Selected topics extracted:")
         for topic, cfg in TOPICS.items():
-            print(f"   • {topic} → {cfg['csv']}")
+            print(f"   • {topic} -> {cfg['csv']}")
     finally:
         rclpy.shutdown()
         

@@ -8,19 +8,6 @@ import glob
 import argparse
 import yaml
 
-# Compute accuracy metrics from reference and estimated coordinates
-
-script_dir = os.path.dirname(os.path.abspath(__file__))
-yaml_path = os.path.join(script_dir, "config.yaml")
-
-with open(yaml_path, "r") as f:
-    yaml_config = yaml.safe_load(f)
-
-parser = argparse.ArgumentParser(description="Keyword for input file to match with")
-parser.add_argument("--pattern", type=str, default=yaml_config["pattern"],
-                    help="'pattern' unless testing")
-args = parser.parse_args()
-
 def compute_metrics_from_columns(df, x_true_col, y_true_col, x_est_col, y_est_col):
     """
     Calculate statistics reflecting accuracy of UWB to robot odometry
@@ -87,7 +74,6 @@ def compute_metrics_from_columns(df, x_true_col, y_true_col, x_est_col, y_est_co
         '2D Precision (σ₂D)': sigma_2d
     }
 
-# Process one file and write metrics to text output
 def process_file(file_path):
     """
     Fetch the input data with "pattern" and call function for calculating stats
@@ -137,6 +123,17 @@ def process_file(file_path):
 
 # Main loop for scanning and processing files
 def main():
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    yaml_path = os.path.join(script_dir, "config.yaml")
+
+    with open(yaml_path, "r") as f:
+        yaml_config = yaml.safe_load(f)
+
+    parser = argparse.ArgumentParser(description="Keyword for input file to match with")
+    parser.add_argument("--pattern", type=str, default=yaml_config["pattern"],
+                        help="'pattern' unless testing")
+    args = parser.parse_args()
+
     files = glob.glob(args.pattern)
 
     if not files:

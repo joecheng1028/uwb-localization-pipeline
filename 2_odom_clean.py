@@ -8,11 +8,27 @@ Kept for completeness and reproducibility.
 
 import pandas as pd
 import os
-INPUT_CSV = "1_odometry_filtered.csv"
-OUTPUT_CSV = "2_odometry_filtered_clean.csv"
+
+def filter_zero_xyz_rows(df):
+    """
+    Remove rows where x, y, and z are all zero.
+
+    Args:
+        df (pd.DataFrame): Input DataFrame with columns 'x', 'y', 'z'.
+
+    Returns:
+        pd.DataFrame: DataFrame with all-zero rows removed.
+    """
+    mask = (df['x'] == 0) & (df['y'] == 0) & (df['z'] == 0)
+    return df[~mask]
+
 
 def remove_zero_xyz_rows():
-    # Current script directory is identified
+    """
+    Read odometry CSV, remove all-zero rows, and write cleaned output.
+    """
+    INPUT_CSV = "1_odometry_filtered.csv"
+    OUTPUT_CSV = "2_odometry_filtered_clean.csv"
     script_dir = os.path.dirname(os.path.abspath(__file__))
     input_csv = os.path.join(script_dir, INPUT_CSV)
     output_csv = os.path.join(script_dir, OUTPUT_CSV)
@@ -22,16 +38,10 @@ def remove_zero_xyz_rows():
         return
 
     df = pd.read_csv(input_csv)
+    cleaned_df = filter_zero_xyz_rows(df)
 
-    # Rows where x, y, z are all zero are excluded
-    mask = (df['x'] == 0) & (df['y'] == 0) & (df['z'] == 0)
-    cleaned_df = df[~mask]
-
-    # Cleaned data is written to a new CSV file
     cleaned_df.to_csv(output_csv, index=False)
-    print(f"Saved cleaned file to: {output_csv}")
-    print(f"Removed {mask.sum()} rows with all-zero x, y, z.")
-    print(f"{len(cleaned_df)} rows remaining.")
+
 
 if __name__ == "__main__":
     remove_zero_xyz_rows()

@@ -10,25 +10,6 @@ from sklearn.metrics import r2_score
 from scipy.optimize import curve_fit
 import argparse
 import yaml
-
-# Configuration for file matching
-CSV_SUFFIX = ".csv"
-
-# yaml
-script_dir = os.path.dirname(os.path.abspath(__file__))
-yaml_path = os.path.join(script_dir, "config.yaml")
-
-with open(yaml_path, "r") as f:
-    yaml_config = yaml.safe_load(f)
-
-# Parser
-
-parser = argparse.ArgumentParser(description="Keyword of Input file")
-parser.add_argument("--keyword", type=str, default=yaml_config["keyword_stage7"],
-                    help="'keyword_stage7' unless under testing")
-args = parser.parse_args()
-
-
 # Exponential model used for curve fitting
 def exp_model(x, a, b, c):
     """
@@ -110,13 +91,36 @@ def plot_regressions(df, base_name):
     plt.close()
 
 # Main loop for scanning and plotting matching files
-cwd = os.getcwd()
-csv_files = [f for f in os.listdir(cwd) if f.endswith(CSV_SUFFIX) and args.keyword in f]
+# Configuration for file matching
+def main():
+    CSV_SUFFIX = ".csv"
 
-if not csv_files:
-    print(f"No matching *{args.keyword}*.csv files found.")
-else:
-    for file in csv_files:
-        df = pd.read_csv(file)
-        base_name = os.path.splitext(file)[0].replace("6_", "7_")
-        plot_regressions(df, base_name)
+    # yaml
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    yaml_path = os.path.join(script_dir, "config.yaml")
+
+    with open(yaml_path, "r") as f:
+        yaml_config = yaml.safe_load(f)
+
+    # Parser
+
+    parser = argparse.ArgumentParser(description="Keyword of Input file")
+    parser.add_argument("--keyword", type=str, default=yaml_config["keyword_stage7"],
+                        help="'keyword_stage7' unless under testing")
+    args = parser.parse_args()
+
+
+
+    cwd = os.getcwd()
+    csv_files = [f for f in os.listdir(cwd) if f.endswith(CSV_SUFFIX) and args.keyword in f]
+
+    if not csv_files:
+        print(f"No matching *{args.keyword}*.csv files found.")
+    else:
+        for file in csv_files:
+            df = pd.read_csv(file)
+            base_name = os.path.splitext(file)[0].replace("6_", "7_")
+            plot_regressions(df, base_name)
+
+if __name__ == "__main__":
+    main()

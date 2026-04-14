@@ -2,6 +2,7 @@
 *.json
 *.db3
 *.txt
+!requirements.txt
 *.png
 *.pdf
 4_trajectory_all_low.py
