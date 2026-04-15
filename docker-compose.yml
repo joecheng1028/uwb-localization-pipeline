@@ -1,6 +1,7 @@
-version: "3"
+# docker-compose.yml
 services:
   pipeline:
-    image: uwb-pipeline
+    build: .
     volumes:
       - .:/app
+    command: python 2_odom_clean.py

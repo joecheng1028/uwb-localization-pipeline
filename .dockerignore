@@ -1,0 +1,8 @@
+# dockerignore
+.git
+.gitignore
+__pycache__
+/tests/
+*.pyc
+*.db3
+/data/
