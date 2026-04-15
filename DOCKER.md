@@ -15,7 +15,8 @@ This .md is intended to provide basic prerequisites to using the containerised p
 ## How to run
 
 ### Prerequisites
-	The entire pipeline is 8-stage but only from stage 2 to stage 8 is covered by the docker image - Stage 2 - 4, and 5 - 8 respectively, due to an external simulation dependency between stage 4 and stage 5
+	The entire pipeline is 8-stage but only from stage 2 to stage 8 is covered by the docker image
+	Stage 2 - 4, and 5 - 8 respectively, due to an external simulation dependency between stage 4 and stage 5
 ### Concern over Exclusion of Stage 1
 	First stage was not covered due to its dependencies on ROS2 library, which could not be installed with pip.
 	Users shall install ROS2 locally then run the first-stage script manually
