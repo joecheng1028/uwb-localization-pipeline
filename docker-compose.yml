@@ -1,7 +1,13 @@
 # docker-compose.yml
 services:
-  pipeline:
+  pipeline-part1:
     build: .
     volumes:
       - .:/app
-    command: python 2_odom_clean.py
+    command: bash run_pipeline_part1.sh
+
+  pipeline-part2:
+    build: .
+    volumes:
+      - .:/app
+    command: bash run_pipeline_part2.sh
