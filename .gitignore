@@ -4,10 +4,10 @@
 *.txt
 !requirements.txt
 *.png
+!pipeline_diagram.png
 *.pdf
 4_trajectory_all_low.py
 printDirectory.py
 re-familiarize/
 __pycache__/
 archive/
-pipeline_diagram_raw.png
