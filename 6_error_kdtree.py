@@ -11,7 +11,9 @@ import argparse
 
 def compute_error_and_save(voxel_json_path, pose_key, uwb_csv, POSE_FILE_LOOKUP, POSE_SUFFIX_LOOKUP):
     """
-    Extract data from input, and performs KDTree built on trajectory point and query with position data
+    Loads voxel trajectory points and pose data from odom/amcl,
+    assigns each pose sample the nearest voxel reliability score using KDTree,
+    then merges with UWB data by exact timestamp to compute XY positioning error.
 
     Args:
         voxel_json_path (str):  All .json in the directory that matches with keyword
