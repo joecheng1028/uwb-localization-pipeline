@@ -1,3 +1,4 @@
+![Tests](https://github.com/joecheng1028/uwb-localization-pipeline/actions/workflows/test.yml/badge.svg)
 # UWB Localization Analysis Pipeline
 
 This pipeline processes odometry and UWB positioning data recorded during robot experiments, and calculates 2D positioning error using wheel odometry as ground truth. The error is compared against a simulation-derived reliability index based on PDOP anchor geometry scoring and ray-casting line-of-sight visibility. The pipeline outputs intermediate files at each stage, regression plots with R² scores across three curve-fitting models, and a text report containing standard positioning accuracy metrics.
