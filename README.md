@@ -44,10 +44,11 @@ pip install pandas numpy matplotlib scipy scikit-learn pyyaml
 → Run OSM3DM color intensity injection on output JSON files
 5_traject_voxel_shift.py
 6_error_kdtree.py
-7d_plot_regressions.py      (and/or 7a, 7b, 7c)
+7_plot_regressions.py
 8_position_accuracy.py
 ```
 
+See [DOCKER.md](DOCKER.md) for instructions on running the pipeline with Docker.
 ---
 
 ## Output Files
