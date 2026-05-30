@@ -8,19 +8,39 @@ import json
 from scipy.spatial import KDTree
 import yaml
 import argparse
+import logging
 
-def compute_error_and_save(voxel_json_path, pose_key, uwb_csv, POSE_FILE_LOOKUP, POSE_SUFFIX_LOOKUP):
+logger = logging.getLogger(__name__)
+
+def compute_error_and_save(
+        voxel_json_path: str, 
+        pose_key: str, 
+        uwb_csv: str, 
+        POSE_FILE_LOOKUP: dict, 
+        POSE_SUFFIX_LOOKUP: dict
+        ) -> None:
     """
     Loads voxel trajectory points and pose data from odom/amcl,
     assigns each pose sample the nearest voxel reliability score using KDTree,
     then merges with UWB data by exact timestamp to compute XY positioning error.
 
-    Args:
-        voxel_json_path (str):  All .json in the directory that matches with keyword
-        pose_key (str):         Robot data input (either amcl or odom (default))
-        uwb_csv (str):          Path to UWB reference CSV file
+    Parameters
+    ----------
+    voxel_json_path : str
+        All .json in the directory that matches with keyword
+    pose_key : str
+        Robot data input (either amcl or odom (default))
+    uwb_csv : str
+        Path to UWB reference CSV file
+    POSE_FILE_LOOKUP : dict
+        keyword of input file name to look up for in config.yaml
+    
+    POSE_SUFFIX_LOOKUP : dict
+        keyword of input file suffix to look up for in config.yaml
 
-    Returns: Nothing
+    Returns
+    --------
+    None
     """
     pose_suffix = POSE_SUFFIX_LOOKUP[pose_key]
     pose_csv = POSE_FILE_LOOKUP[pose_key]
@@ -32,7 +52,7 @@ def compute_error_and_save(voxel_json_path, pose_key, uwb_csv, POSE_FILE_LOOKUP,
         new_base = basename
     output_csv = new_base + "_error.csv"
 
-    print(f"\nProcessing: {voxel_json_path} -> {output_csv}")
+    logger.info("\nProcessing: %s -> %s", voxel_json_path, output_csv)
 
     # Input files are loaded
     uwb_df = pd.read_csv(uwb_csv)
@@ -83,12 +103,15 @@ def compute_error_and_save(voxel_json_path, pose_key, uwb_csv, POSE_FILE_LOOKUP,
         "voxel_value"
     ]
     merged_df[output_cols].to_csv(output_csv, index=False)
-    print(f"Saved: {output_csv}")
+    logger.info("Saved: %s", output_csv)
 
 
-def main():
+def main() -> None:
     script_dir = os.path.dirname(os.path.abspath(__file__))
     yaml_path = os.path.join(script_dir, "config.yaml")
+
+    if not os.path.exists(yaml_path):
+        raise FileNotFoundError(f"Config file not found: {yaml_path}")
 
     with open(yaml_path, "r") as f:
         yaml_config = yaml.safe_load(f)
@@ -109,8 +132,7 @@ def main():
     voxel_jsons = [f for f in os.listdir(cwd) if f.endswith(".json") and args.keyword in f]
 
     if not voxel_jsons:
-        print(f"No *_converted.json files found in: {cwd}")
-        return
+        raise FileNotFoundError(f"No *_converted.json files found in: {cwd}")
 
     for fname in voxel_jsons:
         f_lower = fname.lower()
@@ -119,8 +141,11 @@ def main():
         elif "odom" in f_lower or "odometry" in f_lower:
             compute_error_and_save(fname, "odom", args.uwb_csv, POSE_FILE_LOOKUP, POSE_SUFFIX_LOOKUP)
         else:
-            print(f"Skipped unrecognized file: {fname}")
-
+            logger.info("Skipped unrecognized file: %s", fname)
 
 if __name__ == "__main__":
+    logging.basicConfig(
+        level=logging.INFO,
+        format=("%(asctime)s %(levelname)s %(name)s - %(message)s")
+    )
     main()

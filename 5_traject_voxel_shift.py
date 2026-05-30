@@ -5,19 +5,34 @@ import os
 import json
 import yaml
 import argparse
+import logging
 
+logger = logging.getLogger(__name__)
 
-def axis_shift(coord, dx, dy, dz):
+def axis_shift(
+        coord: dict,
+        dx: float, 
+        dy: float, 
+        dz: float
+        ) -> dict:
     """
-    This part remaps the framing to match with the pipeline and shift the origin to 0, 0, 0 as starting point
-    Args:
-        coord (dict): Input coordinate with keys 'x', 'y', 'z'.
-        dx (float): X offset of the reference origin point.
-        dy (float): Y offset of the reference origin point.
-        dz (float): Z offset of the reference origin point.
+    Remaps the framing to match with the pipeline and shift the origin to 0, 0, 0 as starting point
 
-    Returns:
-        dict: Remapped and shifted coordinate with keys 'x', 'y', 'z'.
+    Parameters
+    ----------
+    coord : dict
+        Input coordinate with keys 'x', 'y', 'z'.
+    dx : float
+        X offset of the reference origin point.
+    dy : float
+        Y offset of the reference origin point.
+    dz : float
+        Z offset of the reference origin point.
+
+    Returns
+    -------
+    dict
+        Remapped and shifted coordinate with keys 'x', 'y', 'z'.
     """
     x_new = coord["x"] - dx
     y_new = -(coord["z"] - dz)
@@ -25,9 +40,12 @@ def axis_shift(coord, dx, dy, dz):
     return {"x": x_new, "y": y_new, "z": z_new}
 
 
-def main():
+def main() -> None:
     script_dir = os.path.dirname(os.path.abspath(__file__))
     yaml_path = os.path.join(script_dir, "config.yaml")
+
+    if not os.path.exists(yaml_path):
+        raise FileNotFoundError(f"Config file not found: {yaml_path}")
 
     with open(yaml_path, "r") as f:
         yaml_config = yaml.safe_load(f)
@@ -49,9 +67,8 @@ def main():
     ]
 
     if not json_files:
-        print(f"No JSON files found with keyword '{keyword}' (excluding AMCL) in: {script_dir}")
-        return
-
+        raise FileNotFoundError(f"No JSON files found with keyword '{keyword}' in: {script_dir}")
+    
     # Each matching file is processed
     for fname in json_files:
         fpath = os.path.join(script_dir, fname)
@@ -85,8 +102,15 @@ def main():
 
         # Converted data is written to JSON
         output_path = os.path.join(script_dir, output_fname)
+
         with open(output_path, "w") as f:
             json.dump(converted_data, f, indent=2)
 
+        logger.info("Saved processed file at %s", output_path)
+
 if __name__ == "__main__":
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s %(levelname)s %(name)s - %(message)s"
+    )
     main()

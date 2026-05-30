@@ -10,29 +10,69 @@ from sklearn.metrics import r2_score
 from scipy.optimize import curve_fit
 import argparse
 import yaml
+import logging
+
+logger = logging.getLogger(__name__)
+
 # Exponential model used for curve fitting
-def exp_model(x, a, b, c):
+def exp_model(
+        x: np.ndarray, 
+        a: float, 
+        b: float, 
+        c: float
+        ) -> np.ndarray:
     """
-    Defining the exponential equation for curve fitting
+    Exponential model passed to scipy curve_fit: a * (1 - exp(-b * x)) + c.
+
+    Parameters
+    ----------
+    x : np.ndarray
+        Input values.
+    a, b, c : float
+        Fitted coefficients optimised by curve_fit.
+
+    Returns
+    -------
+    np.ndarray
+        Model output at each point in x.
     """
     return a * (1 - np.exp(-b * x)) + c
 
-# Sturges’ formula for number of bins
+# Sturges' formula for number of bins
 def sturges_bins(n: int) -> int:
     """
     Calculating binning size/width under Sturges' rule
+
+    Parameters
+    ----------
+    n : int
+        Number of data points.
+
+    Returns
+    -------
+    int
+        Integer of the binning size
     """
     return int(np.ceil(np.log2(max(n, 1)) + 1))
 
 # Plot voxel values with regression models and bin means
-def plot_regressions(df, base_name):
+def plot_regressions(
+        df: pd.DataFrame, 
+        base_name: str
+        ) -> None:
     """
     Plots the bin graph, curve fit for linear, quadratic and exponential regression models, and calculate R²
-    Args:
-        df:         all .csv under same directory that matches with keyword
-        base_name:  name of output files (plots)
 
-    Returns: Nothing
+    Parameters
+    ----------
+    df : pd.DataFrame
+        all .csv under same directory that matches with keyword
+    base_name : str
+        name of output files (plots)
+
+    Returns
+    -------
+    None
 
     """
     x = df['error_xy'].values
@@ -54,12 +94,13 @@ def plot_regressions(df, base_name):
         popt, _ = curve_fit(exp_model, x, y, p0=(10, 1, 22), maxfev=10000)
         y_exp = exp_model(x_sorted, *popt)
         r2_exp = r2_score(y, exp_model(x, *popt))
+
     except RuntimeError:
-        print(f"Exponential fit failed for {base_name}")
+        logger.warning("Exponential fit failed for %s",base_name)
         y_exp = None
         r2_exp = None
 
-    # Bin means are calculated with Sturges’ rule
+    # Bin means are calculated with Sturges' rule
     k = sturges_bins(len(x))
     df['error_bin'] = pd.cut(df['error_xy'], bins=k)
     grouped = df.groupby('error_bin', observed=False)['voxel_value'].mean().reset_index()
@@ -85,19 +126,22 @@ def plot_regressions(df, base_name):
     plt.tight_layout()
 
     # Plot is saved to file
-    out_file = "7d_plot_regressions.png"
+    out_file = f"7_{base_name}_regressions.png"
     plt.savefig(out_file)
-    print(f"Saved: {out_file}")
+    logger.info("Saved: %s", out_file)
     plt.close()
 
 # Main loop for scanning and plotting matching files
 # Configuration for file matching
-def main():
+def main() -> None:
     CSV_SUFFIX = ".csv"
 
     # yaml
     script_dir = os.path.dirname(os.path.abspath(__file__))
     yaml_path = os.path.join(script_dir, "config.yaml")
+
+    if not os.path.exists(yaml_path):
+        raise FileNotFoundError(f"Config file not found: {yaml_path}")
 
     with open(yaml_path, "r") as f:
         yaml_config = yaml.safe_load(f)
@@ -109,13 +153,11 @@ def main():
                         help="'keyword_stage7' unless under testing")
     args = parser.parse_args()
 
-
-
     cwd = os.getcwd()
     csv_files = [f for f in os.listdir(cwd) if f.endswith(CSV_SUFFIX) and args.keyword in f]
 
     if not csv_files:
-        print(f"No matching *{args.keyword}*.csv files found.")
+        raise FileNotFoundError(f"csv file not found: {args.keyword}")
     else:
         for file in csv_files:
             df = pd.read_csv(file)
@@ -123,4 +165,8 @@ def main():
             plot_regressions(df, base_name)
 
 if __name__ == "__main__":
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s %(levelname)s %(name)s - %(message)s"
+    )
     main()

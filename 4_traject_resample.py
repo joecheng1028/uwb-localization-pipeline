@@ -5,27 +5,76 @@ import numpy as np
 import argparse
 import yaml
 import os
+import logging
 
-def distance(p1, p2):
-    """Calculates the distances between each 3D positioning point (effectively 2D)"""
+logger = logging.getLogger(__name__)
+
+def distance(
+        p1: dict,
+        p2: dict
+        ) -> float:
+    """
+    Calculates the distances between each 3D positioning point (effectively 2D)
+    
+    Parameters
+    ----------
+    p1 : dict
+    p2 : dict
+
+    Returns
+    -------
+    float
+        Euclidean distance between p1 and p2
+    """
     return np.sqrt((p1['x'] - p2['x'])**2 + (p1['y'] - p2['y'])**2 + (p1['z'] - p2['z'])**2)
 
-def interpolate(p1, p2, ratio):
-    """Returns an interpolated 3D point at a given fractional position along the segment from p1 to p2."""
+def interpolate(
+        p1: dict, 
+        p2: dict, 
+        ratio: float,
+        ) -> dict:
+    """
+    Returns an interpolated 3D point at a given fractional position along the segment from p1 to p2.
+
+    Parameters
+    ----------
+    p1 : dict
+    p2 : dict
+    ratio : float
+
+    Returns
+    -------
+    dict
+        containing the interpolated points if the sample point step is larger than decided meter_step
+
+    """
     return {
         "x": p1["x"] + ratio * (p2["x"] - p1["x"]),
         "y": p1["y"] + ratio * (p2["y"] - p1["y"]),
         "z": p1["z"] + ratio * (p2["z"] - p1["z"]),
     }
 
-def extract_meterwise_trajectory(csv_path, output_path, meter_step, offset):
+def extract_meterwise_trajectory(
+        csv_path: str, 
+        output_path: str, 
+        meter_step: float, 
+        offset: dict
+        ) -> None:
     """ Resamples odometry CSV into fixed-distance trajectory points and writes to .json:
-    csv_path:       provide the targeted .csv to read
-    output_path:    define names of the output .json files
-    meter_step:     trajectory of different resolutions
-    offset:         select the different height of UWB tag on robot
+    Parameters
+    ----------
+    csv_path : str
+        provide the targeted .csv to read
+    output_path : str
+        define names of the output .json files
+    meter_step : float
+        trajectory of different resolutions
+    offset : dict
+        select the different height of UWB tag on robot. From external 'config.yaml'
 
-    Returns:        Nothing
+    Returns
+    -------
+    None
     """
     df = pd.read_csv(csv_path)
     df = df.dropna(subset=['x', 'y', 'z'])
@@ -58,10 +107,15 @@ def extract_meterwise_trajectory(csv_path, output_path, meter_step, offset):
 
     with open(output_path, "w") as f:
         json.dump({"trajectory": output_points}, f, indent=4)
+    
+    logger.info("Saved trajectory as %s", output_path)
 
-def main():
+def main() -> None:
     script_dir = os.path.dirname(os.path.abspath(__file__))
     yaml_path = os.path.join(script_dir, "config.yaml")
+
+    if not os.path.exists(yaml_path):
+        raise FileNotFoundError(f"Config file not found: {yaml_path}")
 
     with open(yaml_path, "r") as f:
         yaml_config = yaml.safe_load(f)
@@ -74,6 +128,9 @@ def main():
     offset = yaml_config[f"offset_{args.profile}"]
     csv_path_odom = "3_odometry_filtered_uwbSync.csv"
 
+    if not os.path.exists(csv_path_odom):
+        raise FileNotFoundError(f"Input file not found: {csv_path_odom}")
+
     extract_meterwise_trajectory(csv_path_odom, f"4_trajectory_odom_{args.profile}_1m.json",  meter_step=1.0, offset=offset)
     extract_meterwise_trajectory(csv_path_odom, f"4_trajectory_odom_{args.profile}_05m.json", meter_step=0.5, offset=offset)
     extract_meterwise_trajectory(csv_path_odom, f"4_trajectory_odom_{args.profile}_02m.json", meter_step=0.2, offset=offset)
@@ -81,4 +138,8 @@ def main():
 
 
 if __name__ == "__main__":
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s %(levelname)s %(name)s - %(message)s"
+    )
     main()

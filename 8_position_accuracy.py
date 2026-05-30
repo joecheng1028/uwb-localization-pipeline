@@ -1,5 +1,5 @@
 """
-This module calculates different statistics of positioning error without considering reliability index 
+This module calculates different statistics of positioning error without considering reliability index
 """
 import pandas as pd
 import numpy as np
@@ -7,19 +7,36 @@ import os
 import glob
 import argparse
 import yaml
+import logging
 
-def compute_metrics_from_columns(df, x_true_col, y_true_col, x_est_col, y_est_col):
+logger = logging.getLogger(__name__)
+
+def compute_metrics_from_columns(
+        df: pd.DataFrame, 
+        x_true_col: str, 
+        y_true_col: str, 
+        x_est_col: str, 
+        y_est_col: str
+        ) -> dict:
     """
     Calculate statistics reflecting accuracy of UWB to robot odometry
 
-    Args:
-        df:         input dataframe from .csv with keyword
-        x_true_col: x-odometry (robot position)
-        y_true_col: y-odometry
-        x_est_col:  x- uwb data (UWB tag)
-        y_est_col:  y- uwb data
+    Parameters
+    ----------
+    df : pd.DataFrame
+        input dataframe from .csv with keyword
+    x_true_col : str
+        x-odometry (robot position)
+    y_true_col : str
+        y-odometry
+    x_est_col : str
+        x-uwb data (UWB tag)
+    y_est_col : str
+        y-uwb data
 
-    Returns:    a dict containing 
+    Returns
+    -------
+    dict
         quantity of dataframe
         sigma of error in x- and y-coordinate
         mean of x- and y-coordinate error
@@ -30,7 +47,6 @@ def compute_metrics_from_columns(df, x_true_col, y_true_col, x_est_col, y_est_co
         CEP50: Radius of the circle covering 50% of positioning error
         R95: Radius of the circle covering 95% of positioning error
         2D Precision
-
     """
     dx = df[x_est_col] - df[x_true_col]
     dy = df[y_est_col] - df[y_true_col]
@@ -74,16 +90,25 @@ def compute_metrics_from_columns(df, x_true_col, y_true_col, x_est_col, y_est_co
         '2D Precision (σ₂D)': sigma_2d
     }
 
-def process_file(file_path):
+def process_file(file_path: str) -> None:
     """
     Fetch the input data with "pattern" and call function for calculating stats
 
-    Args:
-        file_path:  All files at directory that match with "pattern"
+    Parameters
+    ----------
+    file_path : str
+        All files at directory that match with "pattern"
 
-    Returns: Nothing
+    Returns
+    -------
+    None
+
     """
+    if not os.path.exists(file_path):
+        raise FileNotFoundError(f"Input file not found {file_path}")
+    
     df = pd.read_csv(file_path)
+
     metrics = compute_metrics_from_columns(df, 'x_odom', 'y_odom', 'x_uwb', 'y_uwb')
 
     original_name = os.path.basename(file_path)
@@ -119,12 +144,15 @@ def process_file(file_path):
         f.write(f"R95: {metrics['R95']:.4f} m\n")
         f.write(f"2D Precision (σ₂D): {metrics['2D Precision (σ₂D)']:.4f} m\n")
 
-    print(f"Written: {output_path}")
+    logger.info("Written: %s", output_path)
 
 # Main loop for scanning and processing files
-def main():
+def main() -> None:
     script_dir = os.path.dirname(os.path.abspath(__file__))
     yaml_path = os.path.join(script_dir, "config.yaml")
+
+    if not os.path.exists(yaml_path):
+        raise FileNotFoundError(f"Config file not found: {yaml_path}")
 
     with open(yaml_path, "r") as f:
         yaml_config = yaml.safe_load(f)
@@ -137,11 +165,14 @@ def main():
     files = glob.glob(args.pattern)
 
     if not files:
-        print("No matching files found.")
-        return
+        raise FileNotFoundError("No matching files found.")
 
     for file_path in files:
         process_file(file_path)
 
 if __name__ == "__main__":
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s %(levelname)s %(name)s - %(message)s"
+    )
     main()

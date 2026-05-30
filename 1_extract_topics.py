@@ -1,4 +1,3 @@
-
 import rclpy
 import rosbag2_py
 import csv
@@ -6,54 +5,67 @@ import os
 from rclpy.serialization import deserialize_message
 from rosidl_runtime_py.utilities import get_message
 import yaml
+import argparse
+import logging
 
-def write_csv_header(writer):
+logger = logging.getLogger(__name__)
+
+def write_csv_header(writer) -> None:
     """
     Write the header of the output .csv
+
+    Parameters
+    ----------
+    writer : any
+        csv.writer object for the output file. Black box not worthy of time
+
+    Returns
+    -------
+    None
+
     """
     writer.writerow([
         'timestamp_abs (s)', 'timestamp_norm (s)', 'x', 'y', 'z', 'qx', 'qy', 'qz', 'qw'
     ])
 
-def main():
+def main() -> None:
     """
     This module imports positioning data of a real life robot installed with UWB tag
     """
     script_dir = os.path.dirname(os.path.abspath(__file__))
     yaml_path = os.path.join(script_dir, "config.yaml")
 
+    if not os.path.exists(yaml_path):
+        raise FileNotFoundError(f"Config file not found: {yaml_path}")
+
     with open(yaml_path, "r") as f:
         yaml_config = yaml.safe_load(f)
 
     TOPICS = yaml_config["topic"]
 
-    # === Topic configuration for extraction ===
-    # TOPICS = {
-    #     '/odometry/filtered': {
-    #         'msg_type': 'nav_msgs/msg/Odometry',
-    #         'csv': '1_odometry_filtered.csv',
-    #         'scale10': False
-    #     },
-    #     '/uwb_pose': {
-    #         'msg_type': 'geometry_msgs/msg/PoseWithCovarianceStamped',
-    #         'csv': '1_uwb_pose.csv',
-    #         'scale10': True
-    #     }
-    # }
-
-    """
-    This looks for .db3 at the same directory, extract and export the data from ROS2 specific topics into a .csv file
-    """
     bag_folder = os.path.abspath(os.path.dirname(__file__))
-    db3_files = sorted([f for f in os.listdir(bag_folder) if f.endswith('.db3')])
-    if not db3_files:
-        print("No .db3 file found in this folder!")
-        return
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--bag", type=str, default=None,
+                        help="Path to .db3 file. If omitted, auto-detects when exactly one exists.")
+    args = parser.parse_args()
 
-    bag_file = db3_files[0]
-    bag_path = os.path.join(bag_folder, bag_file)
-    print(f"Using bag: {bag_file}")
-    
+    if args.bag:
+        bag_path = args.bag
+        if not os.path.exists(bag_path):
+            raise FileNotFoundError(f"Bag file not found: {bag_path}")
+    else:
+        db3_files = sorted(f for f in os.listdir(bag_folder) if f.endswith('.db3'))
+        if not db3_files:
+            raise FileNotFoundError(f"No .db3 file found in {bag_folder}")
+        if len(db3_files) > 1:
+            raise RuntimeError(
+                f"Multiple .db3 files found in {bag_folder}: {db3_files}. "
+                f"Pass --bag explicitly."
+            )
+        bag_path = os.path.join(bag_folder, db3_files[0])
+
+    logger.info("Using bag: %s", bag_path)
+
     rclpy.init()
     try:
         storage_options = rosbag2_py.StorageOptions(uri=bag_path, storage_id='sqlite3')
@@ -124,11 +136,15 @@ def main():
                 f.close()
 
         # Report output locations per topic.
-        print("Selected topics extracted:")
+        logger.info("Selected topics extracted:")
         for topic, cfg in TOPICS.items():
-            print(f"   • {topic} -> {cfg['csv']}")
+            logger.info("   • %s -> %s", topic, cfg['csv'])
     finally:
         rclpy.shutdown()
-        
+
 if __name__ == "__main__":
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s %(levelname)s %(name)s - %(message)s"
+    )
     main()
