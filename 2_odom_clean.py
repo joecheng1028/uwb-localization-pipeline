@@ -41,7 +41,7 @@ def remove_zero_xyz_rows() -> None:
     output_csv = os.path.join(script_dir, OUTPUT_CSV)
 
     if not os.path.exists(input_csv):
-        raise FileNotFoundError(f"Input file not found: {input_csv}")
+        return
 
     df = pd.read_csv(input_csv)
     cleaned_df = filter_zero_xyz_rows(df)
